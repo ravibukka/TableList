@@ -18,7 +18,7 @@ class ViewController: UITableViewController {
     var session: URLSession!
     var cache:NSCache<AnyObject, AnyObject>!
     
-   
+    var rowsList: [Rows] = []
    
     
     override func viewDidLoad() {
@@ -27,8 +27,6 @@ class ViewController: UITableViewController {
         session = URLSession.shared
         task = URLSessionDownloadTask()
         
-        self.tableData = []
-        self.titleName = ""
         self.cache = NSCache()
         
         self.refreshCtrl = UIRefreshControl()
@@ -39,7 +37,7 @@ class ViewController: UITableViewController {
     
     @objc func refreshTableView(){
         
-        //   let url:URL! = URL(string: "https://itunes.apple.com/search?term=flappy&entity=software")
+        
         let url:URL! = URL(string: "https://dl.dropboxusercontent.com/s/2iodh4vg0eortkl/facts.json")
         task = session.downloadTask(with: url, completionHandler: { (location: URL?, response: URLResponse?, error: Error?) -> Void in
             
@@ -51,10 +49,10 @@ class ViewController: UITableViewController {
                     return
                 }
                 do{
-                    //  let dic = try JSONSerialization.jsonObject(with: responseStrInISOLatin, options: .mutableLeaves) as AnyObject
-                    let dic = try JSONSerialization.jsonObject(with: modifiedDataInUTF8Format)
-                    self.tableData = (dic as AnyObject).value(forKey : "rows") as? [AnyObject]
-                    self.titleName = (dic as AnyObject).value(forKey: "title") as? String
+                    let jsonDecoder = JSONDecoder()
+                    let baseValues = try jsonDecoder.decode(Base.self, from: modifiedDataInUTF8Format)
+                    self.rowsList = baseValues.rows ?? []
+
 
                     DispatchQueue.main.async(execute: { () -> Void in
                         self.tableView.reloadData()
@@ -76,7 +74,7 @@ class ViewController: UITableViewController {
     
     //MARK: UITableViewDataSource
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return self.tableData.count
+        return self.rowsList.count
     }
     
     
@@ -84,16 +82,12 @@ class ViewController: UITableViewController {
         
         // 1
         let cell = tableView.dequeueReusableCell(withIdentifier: "GameCell", for: indexPath)
-        let dictionary = self.tableData[(indexPath as NSIndexPath).row] as! [String:AnyObject]
         
         
-        cell.textLabel!.text = dictionary["title"] as? String
-        //  cell.detailTextLabel?.text = "Hi"
+        cell.textLabel?.text = self.rowsList[indexPath.row].title
         cell.imageView?.image = UIImage(named: "placeholder")
-        cell.detailTextLabel?.text = dictionary["description"] as? String
-        
-       // cell.textLabel?.numberOfLines=0 // line wrap
-      //  cell.textLabel?.lineBreakMode = NSLineBreakMode.byWordWrapping
+        cell.detailTextLabel?.text = self.rowsList[indexPath.row].description
+
         
         
         
@@ -105,7 +99,7 @@ class ViewController: UITableViewController {
         }else{
             // 3
             
-            if let artworkUrl = dictionary["imageHref"] as? String
+            if let artworkUrl = self.rowsList[indexPath.row].imageHref
             {
                 let url:URL! = URL(string: artworkUrl)
                 //            let artworkUrl = dictionary["imageHref"] as! String
